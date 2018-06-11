@@ -51,12 +51,15 @@ requirejs(['./WorldWindShim',
         // In this case the current date will be given to initialize the simulation.
         var timeStamp = Date.now();
 
-        // Update the Sun position in 3 minute steps, every 64 ms in real time. Then redraw the scene.
-        setInterval(function () {
+        // Update the Sun position in 3 minute steps, Then redraw the scene.
+        function runSunSimulation() {
             timeStamp += 180 * 1000;
             atmosphereLayer.time = new Date(timeStamp);
-            wwd.redraw();
-        }, 64);
+            wwd.redraw(); // Update the WorldWindow scene.
+            requestAnimationFrame(runSunSimulation);
+        }
+
+        requestAnimationFrame(runSunSimulation);
 
         // Create a layer manager for controlling layer visibility.
         var layerManager = new LayerManager(wwd);
