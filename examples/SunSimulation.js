@@ -32,6 +32,7 @@ requirejs(['./WorldWindShim',
         var layers = [
             // Imagery layer.
             {layer: new WorldWind.BMNGLayer(), enabled: true},
+            {layer: new WorldWind.BMNGOneImageLayer(), enabled: true},
             // WorldWindow UI layers.
             {layer: new WorldWind.CompassLayer(), enabled: false},
             {layer: new WorldWind.CoordinatesDisplayLayer(wwd), enabled: false},
@@ -49,17 +50,33 @@ requirejs(['./WorldWindShim',
 
         // Atmosphere layer requires a date to simulate the Sun position at that time.
         // In this case the current date will be given to initialize the simulation.
-        var timeStamp = Date.now();
+        var currentTime = Date.now(), frameTime, minutesToAdvance;
+        var lastFrame;
 
-        // Update the Sun position in 3 minute steps, Then redraw the scene.
-        function runSunSimulation() {
-            timeStamp += 180 * 1000;
-            atmosphereLayer.time = new Date(timeStamp);
-            wwd.redraw(); // Update the WorldWindow scene.
-            requestAnimationFrame(runSunSimulation);
+        requestAnimationFrame(runAnimation);
+
+        function runAnimation() {
+            var now = Date.now();
+            if (lastFrame) {
+                frameTime = now - lastFrame; // The amount of time (in milliseconds) to render each frame.
+
+                // The amount of minutes (in milliseconds) to advance the simulation, per frame, in order to achieve
+                // a constant passage of time rate of 3 hrs in simulated time per real time second, regardless of
+                // frame rate.
+                // At 60hz, each frame advances ~180000 ms (three simulated minutes) to achieve this rate.
+                // The constant value of 10800 ms is the time to advance the simulation at 3 hrs per second
+                // with an hypothetical frame time equal to 1 ms.
+                // This constant increases the simulation advancement in each step, proportionally to the frame time.
+                minutesToAdvance = frameTime * 10800;
+
+                currentTime += minutesToAdvance; // Advance 3 hours in the simulation per second in real time.
+                atmosphereLayer.time = new Date(currentTime); // Update the time of day in the Atmosphere layer.
+
+                wwd.redraw(); // Update the WorldWindow scene.
+            }
+            lastFrame = now;
+            window.requestAnimationFrame(runAnimation);
         }
-
-        requestAnimationFrame(runSunSimulation);
 
         // Create a layer manager for controlling layer visibility.
         var layerManager = new LayerManager(wwd);
